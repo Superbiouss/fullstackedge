@@ -12,17 +12,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This check is important! It ensures you have filled out your .env.local file.
-// If you're seeing this error, it means you need to add your Firebase credentials.
-const missingConfig = Object.entries(firebaseConfig)
-  .filter(([, value]) => !value || value === 'YOUR_API_KEY_HERE')
-  .map(([key]) => key);
-
-if (missingConfig.length > 0) {
-    const missingKeys = missingConfig.map(key => `NEXT_PUBLIC_FIREBASE_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`);
-    throw new Error(`Firebase configuration is missing or incomplete. Please check your .env.local file for the following keys: ${missingKeys.join(', ')} and restart the server.`);
-}
-
+// Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const auth = getAuth(app);
