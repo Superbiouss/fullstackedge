@@ -11,8 +11,14 @@ export default {
     extend: {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        headline: ['"Space Grotesk"', 'sans-serif'],
         code: ['monospace'],
+      },
+      backgroundImage: {
+        'grid-pattern': `radial-gradient(circle, hsl(var(--accent) / 0.1) 1px, transparent 1px)`,
+      },
+      backgroundSize: {
+        'grid-pattern': '20px 20px',
       },
       colors: {
         background: 'hsl(var(--background))',
