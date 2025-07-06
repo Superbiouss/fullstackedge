@@ -22,12 +22,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import Link from 'next/link';
-import { auth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth, githubProvider } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Github, Loader2 } from 'lucide-react';
 import { Logo } from '../logo';
 
 const formSchema = z.object({
@@ -39,6 +39,7 @@ export function SignupForm() {
   const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGithubLoading, setIsGithubLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -65,6 +66,26 @@ export function SignupForm() {
       });
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleGithubSignIn() {
+    setIsGithubLoading(true);
+    try {
+      await signInWithPopup(auth, githubProvider);
+      toast({
+        title: 'Success!',
+        description: 'You have successfully signed up with GitHub.',
+      });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Uh oh! Something went wrong.',
+        description: error.message || 'There was a problem with your request.',
+      });
+    } finally {
+      setIsGithubLoading(false);
     }
   }
 
@@ -104,12 +125,26 @@ export function SignupForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full font-bold" disabled={isLoading}>
+            <Button type="submit" className="w-full font-bold" disabled={isLoading || isGithubLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign Up
             </Button>
           </form>
         </Form>
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+        <Button variant="outline" className="w-full font-bold" onClick={handleGithubSignIn} disabled={isLoading || isGithubLoading}>
+          {isGithubLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Github className="mr-2 h-4 w-4" />}
+          GitHub
+        </Button>
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
