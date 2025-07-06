@@ -12,6 +12,13 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Add a clear check to ensure the environment variables are loaded.
+if (!firebaseConfig.apiKey) {
+  throw new Error(
+    'Firebase API Key is missing. Please make sure you have a .env.local file in the root of your project with the correct NEXT_PUBLIC_FIREBASE_API_KEY. You may need to restart the development server.'
+  );
+}
+
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
