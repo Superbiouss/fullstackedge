@@ -13,11 +13,10 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, BookCopy, LogOut, Home } from 'lucide-react';
+import { BookCopy, LogOut, Home, Presentation } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '../logo';
-import { Button } from '../ui/button';
 import { auth } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth } from '@/hooks/use-auth';
@@ -38,11 +37,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       label: 'Courses',
       icon: BookCopy,
     },
-    {
-      href: '/admin/dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-    },
+    // Add more admin links here
   ];
 
   return (
@@ -68,7 +63,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter className="flex-col !items-start gap-4">
+        <SidebarFooter className="flex-col !items-start gap-4 p-2">
            <div className="flex items-center gap-3 w-full p-2">
             <Avatar>
               <AvatarImage src={user?.photoURL ?? undefined} />
@@ -98,10 +93,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-12 items-center justify-between border-b px-4 md:justify-end">
-            <SidebarTrigger className="md:hidden" />
+        <header className="flex h-12 items-center justify-between border-b px-4 lg:justify-end">
+            <SidebarTrigger className="lg:hidden" />
         </header>
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -3,7 +3,7 @@ export interface Course {
   title: string;
   description: string;
   category: string;
-  thumbnailUrl: string;
+  thumbnailUrl?: string;
   isPaid: boolean;
   price?: number;
   createdAt: any;
@@ -19,6 +19,7 @@ export interface Lesson {
 
 export interface Quiz {
   id: string;
+  lessonId: string;
   question: string;
   options: string[];
   correctAnswer: string;

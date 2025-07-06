@@ -17,6 +17,7 @@ export default function EditCoursePage({ params }: { params: { courseId: string 
   useEffect(() => {
     if (params.courseId) {
       const fetchCourse = async () => {
+        setLoading(true);
         const docRef = doc(db, 'courses', params.courseId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -34,9 +35,9 @@ export default function EditCoursePage({ params }: { params: { courseId: string 
         <Skeleton className="h-9 w-1/2 mb-2" />
         <Skeleton className="h-6 w-3/4 mb-8" />
         <div className="space-y-4">
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-48" />
           <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
       </div>
     )

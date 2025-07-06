@@ -4,13 +4,13 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { db, storage } from '@/lib/firebase';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
@@ -25,14 +25,17 @@ const formSchema = z.object({
   isPaid: z.boolean().default(false),
   price: z.coerce.number().optional(),
   thumbnail: z.any().optional(),
+}).refine(data => !data.isPaid || (data.isPaid && data.price && data.price > 0), {
+  message: 'Price must be a positive number for paid courses.',
+  path: ['price'],
 });
+
 
 export function CourseForm({ course }: { course?: Course }) {
   const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isPaid, setIsPaid] = useState(course?.isPaid || false);
-
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -40,13 +43,12 @@ export function CourseForm({ course }: { course?: Course }) {
       description: course?.description || '',
       category: course?.category || '',
       isPaid: course?.isPaid || false,
-      price: course?.price || 0,
+      price: course?.price || undefined,
+      thumbnail: undefined,
     },
   });
 
-  useEffect(() => {
-    form.register('thumbnail');
-  }, [form]);
+  const isPaid = form.watch('isPaid');
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -73,14 +75,15 @@ export function CourseForm({ course }: { course?: Course }) {
         const courseRef = doc(db, 'courses', course.id);
         await updateDoc(courseRef, courseData);
         toast({ title: 'Success', description: 'Course updated successfully.' });
+        router.refresh();
       } else {
         // Create new course
-        await addDoc(collection(db, 'courses'), {
+        const docRef = await addDoc(collection(db, 'courses'), {
           ...courseData,
           createdAt: serverTimestamp(),
         });
         toast({ title: 'Success', description: 'Course created successfully.' });
-        router.push('/admin/courses');
+        router.push(`/admin/courses/${docRef.id}`);
       }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -111,7 +114,7 @@ export function CourseForm({ course }: { course?: Course }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Course Description</FormLabel>
-                  <FormControl><Textarea placeholder="Describe the course..." {...field} /></FormControl>
+                  <FormControl><Textarea placeholder="Describe the course..." {...field} rows={5} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -130,58 +133,68 @@ export function CourseForm({ course }: { course?: Course }) {
             <FormField
               control={form.control}
               name="thumbnail"
-              render={({ field }) => (
+              render={({ field: { onChange, value, ...rest } }) => (
                 <FormItem>
                   <FormLabel>Course Thumbnail</FormLabel>
                   <FormControl>
                     <Input 
                       type="file" 
                       accept="image/*"
-                      onChange={(e) => field.onChange(e.target.files)}
+                      onChange={(e) => onChange(e.target.files)}
+                      {...rest}
                     />
                   </FormControl>
+                  <FormDescription>
+                    {course?.thumbnailUrl && !value && "Current thumbnail is set. Upload a new file to replace it."}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="flex items-center space-x-4">
-                <Controller
+            <div className="flex items-center space-x-4 rounded-lg border p-4">
+                 <FormField
                     control={form.control}
                     name="isPaid"
                     render={({ field }) => (
-                        <FormItem className="flex items-center gap-2 space-y-0">
+                        <FormItem className="flex flex-row items-center justify-between w-full">
+                            <div className="space-y-0.5">
+                                <FormLabel>Paid Course</FormLabel>
+                                <FormDescription>
+                                    Will this course require payment to access?
+                                </FormDescription>
+                            </div>
                             <FormControl>
                                 <Switch
                                     checked={field.value}
-                                    onCheckedChange={(checked) => {
-                                        field.onChange(checked);
-                                        setIsPaid(checked);
-                                    }}
+                                    onCheckedChange={field.onChange}
                                 />
                             </FormControl>
-                            <FormLabel>Paid Course</FormLabel>
                         </FormItem>
                     )}
                 />
-                
-                {isPaid && (
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="Price (USD)" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
             </div>
+                
+            {isPaid && (
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price (USD)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                        <Input type="number" step="0.01" placeholder="29.99" className="pl-7" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
-            <Button type="submit" disabled={isLoading} style={{ backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+            <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {course ? 'Save Changes' : 'Create Course'}
             </Button>

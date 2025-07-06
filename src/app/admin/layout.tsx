@@ -13,14 +13,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isAdmin = user?.uid === process.env.NEXT_PUBLIC_FIREBASE_ADMIN_UID;
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/login');
-    } else if (!loading && user && !isAdmin) {
-      router.replace('/dashboard');
+    if (!loading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (!isAdmin) {
+        router.replace('/dashboard');
+      }
     }
   }, [user, loading, isAdmin, router]);
 
-  if (loading || !isAdmin) {
+  if (loading || !user || !isAdmin) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
