@@ -25,3 +25,7 @@ export interface Quiz {
   correctAnswer: string;
   createdAt: any;
 }
+
+export interface UserProgress {
+  completedLessons: string[];
+}
