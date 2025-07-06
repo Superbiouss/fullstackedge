@@ -12,6 +12,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// This check is important! It ensures you have filled out your .env.local file.
+// If you're seeing this error, it means you need to add your Firebase credentials.
+if (!firebaseConfig.apiKey) {
+    throw new Error('Firebase API Key is missing. Please check your .env.local file and restart the server.');
+}
+
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const auth = getAuth(app);
