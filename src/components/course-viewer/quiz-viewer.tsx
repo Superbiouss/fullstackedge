@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface QuizViewerProps {
   quiz: Quiz;
@@ -57,16 +58,20 @@ export function QuizViewer({ quiz }: QuizViewerProps) {
           </div>
         ) : (
           <div>
-            <Alert variant={isCorrect ? 'default' : 'destructive'} className={isCorrect ? 'border-primary/50' : 'border-destructive/50'}>
+            <Alert className={cn(
+                isCorrect ? 'border-primary/50' : 'border-accent/50'
+            )}>
               {isCorrect ? 
-                <CheckCircle className="h-4 w-4" color="hsl(var(--primary))" /> : 
-                <XCircle className="h-4 w-4" />
+                <CheckCircle className="h-4 w-4 text-primary" /> : 
+                <XCircle className="h-4 w-4 text-accent" />
               }
-              <AlertTitle>{isCorrect ? 'Correct!' : 'Not Quite'}</AlertTitle>
-              <AlertDescription>
+              <AlertTitle className={cn(isCorrect ? 'text-primary' : 'text-accent')}>
+                {isCorrect ? 'Correct!' : 'Not Quite'}
+              </AlertTitle>
+              <AlertDescription className="text-muted-foreground">
                 {isCorrect 
                     ? "Great job! You nailed it."
-                    : `The correct answer was: ${quiz.correctAnswer}`
+                    : <>The correct answer was: <strong className='text-foreground font-semibold'>{quiz.correctAnswer}</strong></>
                 }
               </AlertDescription>
             </Alert>
