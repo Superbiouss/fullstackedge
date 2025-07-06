@@ -6,10 +6,12 @@ import { Button } from './ui/button';
 import { Logo } from './logo';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { Crown } from 'lucide-react';
 
 export function Header() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const isAdmin = user?.uid === process.env.NEXT_PUBLIC_FIREBASE_ADMIN_UID;
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -24,10 +26,18 @@ export function Header() {
           {loading ? (
             <div className="h-10 w-24 bg-muted rounded-md animate-pulse"></div>
           ) : user ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <Button asChild variant="ghost">
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
+              {isAdmin && (
+                <Button asChild variant="ghost" className="text-accent hover:text-accent">
+                  <Link href="/admin">
+                    <Crown className="mr-2 h-4 w-4" />
+                    Admin
+                  </Link>
+                </Button>
+              )}
               <Button onClick={handleLogout}>Logout</Button>
             </div>
           ) : (

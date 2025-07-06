@@ -29,6 +29,14 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    /* Sidebar specific theme */
+    --sidebar-background: 216 23% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 216 23% 15%;
+    --sidebar-ring: 263 81% 54%;
+    --sidebar-accent: 216 23% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
   }
  
   .dark {
@@ -56,6 +64,15 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Sidebar specific theme */
+    --sidebar-background: 216 23% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 216 23% 15%;
+    --sidebar-ring: 263 81% 54%;
+    /* Highlight color for active/hovered items */
+    --sidebar-accent: 216 23% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
   }
 }
 
