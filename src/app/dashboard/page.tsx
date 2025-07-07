@@ -115,6 +115,7 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {courses.map((course) => {
                     const hasAccess = !course.isPaid || !!userProfile?.purchasedCourses?.includes(course.id);
+                    const isPurchasable = course.isPaid && course.price && course.price > 0 && course.stripePriceId;
                     const userProgress = progressData[course.id];
                     const completedLessons = userProgress?.completedLessons?.length || 0;
                     const totalLessons = course.lessonCount || 0;
@@ -137,7 +138,7 @@ export default function DashboardPage() {
                                   <div className='flex justify-between items-start gap-2'>
                                       <CardTitle className="font-headline text-xl mb-2">{course.title}</CardTitle>
                                       <Badge variant={course.isPaid ? 'default' : 'secondary'} className="whitespace-nowrap">
-                                          {course.isPaid ? `$${course.price}` : 'Free'}
+                                        {isPurchasable ? `$${course.price}` : course.isPaid ? 'Paid' : 'Free'}
                                       </Badge>
                                   </div>
                                   <CardDescription className="line-clamp-3">{course.description}</CardDescription>
@@ -153,22 +154,26 @@ export default function DashboardPage() {
                           </CardContent>
                           <CardFooter>
                             {hasAccess ? (
-                                  <Button asChild className="w-full font-bold">
-                                      <Link href={`/courses/${course.id}`}>
-                                          {progressPercentage > 0 && progressPercentage < 100 ? 'Continue Learning' : 'Start Learning'} <ArrowRight className="ml-2 h-4 w-4" />
-                                      </Link>
-                                  </Button>
-                              ) : (
-                                  <Button 
-                                      onClick={() => handlePurchase(course)} 
-                                      disabled={isPurchasing === course.id}
-                                      className="w-full font-bold"
-                                      style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }}
-                                  >
-                                      {isPurchasing === course.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-                                      Buy for ${course.price}
-                                  </Button>
-                              )}
+                                <Button asChild className="w-full font-bold">
+                                    <Link href={`/courses/${course.id}`}>
+                                        {progressPercentage > 0 && progressPercentage < 100 ? 'Continue Learning' : 'Start Learning'} <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            ) : isPurchasable ? (
+                                <Button 
+                                    onClick={() => handlePurchase(course)} 
+                                    disabled={isPurchasing === course.id}
+                                    className="w-full font-bold"
+                                    style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }}
+                                >
+                                    {isPurchasing === course.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                                    Buy for ${course.price}
+                                </Button>
+                            ) : (
+                                <Button disabled className="w-full font-bold" variant="secondary">
+                                    Not available for purchase
+                                </Button>
+                            )}
                           </CardFooter>
                         </Card>
                     );

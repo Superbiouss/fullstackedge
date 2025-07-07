@@ -26,19 +26,6 @@ const formSchema = z.object({
   price: z.coerce.number().optional(),
   stripePriceId: z.string().optional(),
   thumbnail: z.any().optional(),
-}).refine(data => {
-  if (data.isPaid) {
-    const priceProvided = data.price !== undefined && data.price > 0;
-    const stripeIdProvided = !!data.stripePriceId?.trim();
-    // If one is provided, the other must also be. This allows saving a paid course without either.
-    if (priceProvided !== stripeIdProvided) {
-      return false;
-    }
-  }
-  return true;
-}, {
-  message: "Price and Stripe ID must both be provided to make a course purchasable.",
-  path: ['price'], // Attach the error message to the price field for visibility.
 });
 
 

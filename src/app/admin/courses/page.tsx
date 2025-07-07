@@ -84,7 +84,7 @@ export default function CoursesPage() {
                     <div className='flex justify-between items-start gap-2'>
                         <CardTitle className="font-headline text-xl mb-2">{course.title}</CardTitle>
                         <Badge variant={course.isPaid ? 'default' : 'secondary'} className="whitespace-nowrap">
-                            {course.isPaid ? `$${course.price}` : 'Free'}
+                          {course.isPaid ? (course.price ? `$${course.price}` : 'Paid') : 'Free'}
                         </Badge>
                     </div>
                     <CardDescription className="line-clamp-3">{course.description}</CardDescription>
