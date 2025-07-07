@@ -12,8 +12,10 @@ interface CoursePlayerProps {
   userProgress: UserProgress;
   selectedLesson: Lesson | undefined;
   selectedLessonQuiz: Quiz | undefined;
+  isGeneratingCertificate: boolean;
   onSelectLesson: (lessonId: string) => void;
   onMarkComplete: (lessonId: string) => void;
+  onGenerateCertificate: () => void;
 }
 
 export function CoursePlayer({
@@ -22,13 +24,17 @@ export function CoursePlayer({
   userProgress,
   selectedLesson,
   selectedLessonQuiz,
+  isGeneratingCertificate,
   onSelectLesson,
   onMarkComplete,
+  onGenerateCertificate,
 }: CoursePlayerProps) {
   
   const isLessonCompleted = (lessonId: string) => {
     return userProgress.completedLessons.includes(lessonId);
   };
+
+  const isCourseComplete = lessons.length > 0 && userProgress.completedLessons.length === lessons.length;
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-var(--header-height))]">
@@ -43,6 +49,10 @@ export function CoursePlayer({
         <ProgressTracker
           totalLessons={lessons.length}
           completedLessons={userProgress.completedLessons.length}
+          isCourseComplete={isCourseComplete}
+          userProgress={userProgress}
+          isGenerating={isGeneratingCertificate}
+          onGenerateCertificate={onGenerateCertificate}
         />
         {selectedLesson && (
           <LessonContent

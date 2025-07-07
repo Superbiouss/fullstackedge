@@ -3,15 +3,19 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, onSnapshot, collection, query, orderBy, setDoc, arrayUnion } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import { doc, getDoc, onSnapshot, collection, query, orderBy, setDoc, arrayUnion, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Course, Lesson, Quiz, UserProgress } from '@/types';
 import { CoursePlayer } from '@/components/course-viewer/course-player';
 import { Skeleton } from '@/components/ui/skeleton';
+import { generateCertificateSVG } from '@/lib/certificate-template';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CoursePage({ params }: { params: { courseId: string } }) {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -20,6 +24,7 @@ export default function CoursePage({ params }: { params: { courseId: string } })
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(true);
+  const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 
   const courseId = params.courseId;
 
@@ -41,7 +46,6 @@ export default function CoursePage({ params }: { params: { courseId: string } })
       if (docSnap.exists()) {
         setCourse({ id: docSnap.id, ...docSnap.data() } as Course);
       } else {
-        // Handle course not found
         router.replace('/dashboard');
       }
     });
@@ -61,10 +65,8 @@ export default function CoursePage({ params }: { params: { courseId: string } })
       setQuizzes(quizzesData);
     });
 
-    // Combined loading state
     Promise.all([
         getDoc(courseRef),
-        // A bit of a hack to wait for the first snapshot
         new Promise(resolve => onSnapshot(lessonsQuery, () => resolve(true), { once: true })),
     ]).then(() => setLoading(false));
 
@@ -90,7 +92,7 @@ export default function CoursePage({ params }: { params: { courseId: string } })
   }, [user, courseId]);
 
   const handleMarkComplete = async (lessonId: string) => {
-    if (!user) return;
+    if (!user || userProgress?.completedLessons.includes(lessonId)) return;
     const progressRef = doc(db, 'userProgress', user.uid, 'courses', courseId);
     try {
       await setDoc(progressRef, {
@@ -100,6 +102,55 @@ export default function CoursePage({ params }: { params: { courseId: string } })
       console.error("Error marking lesson as complete: ", error);
     }
   };
+  
+  const handleGenerateCertificate = async () => {
+    if (!user || !course || !userProgress || userProgress.certificateUrl) return;
+
+    setIsGeneratingCertificate(true);
+    try {
+      const studentName = user.displayName || user.email?.split('@')[0] || 'Student';
+      const completionDate = new Date();
+      const completionDateString = completionDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      const svgString = generateCertificateSVG({
+        studentName,
+        courseTitle: course.title,
+        completionDate: completionDateString,
+      });
+
+      const certificateBlob = new Blob([svgString], { type: 'image/svg+xml' });
+      const storageRef = ref(storage, `certificates/${user.uid}/${course.id}.svg`);
+      
+      const snapshot = await uploadBytes(storageRef, certificateBlob);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      const progressRef = doc(db, 'userProgress', user.uid, 'courses', courseId);
+      await updateDoc(progressRef, {
+        certificateUrl: downloadURL,
+        completionDate: serverTimestamp(),
+      });
+      
+      toast({ title: "Certificate Generated!", description: "Your certificate has been saved and is downloading."});
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(certificateBlob);
+      link.download = `FullStackEdge_${course.title.replace(/\s+/g, '_')}_Certificate.svg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+    } catch (error) {
+      console.error("Error generating certificate: ", error);
+      toast({ variant: 'destructive', title: "Error", description: "Could not generate certificate." });
+    } finally {
+      setIsGeneratingCertificate(false);
+    }
+  };
+
 
   const selectedLesson = useMemo(() => {
     return lessons.find(lesson => lesson.id === selectedLessonId);
@@ -121,8 +172,10 @@ export default function CoursePage({ params }: { params: { courseId: string } })
       userProgress={userProgress}
       selectedLesson={selectedLesson}
       selectedLessonQuiz={selectedLessonQuiz}
+      isGeneratingCertificate={isGeneratingCertificate}
       onSelectLesson={setSelectedLessonId}
       onMarkComplete={handleMarkComplete}
+      onGenerateCertificate={handleGenerateCertificate}
     />
   );
 }

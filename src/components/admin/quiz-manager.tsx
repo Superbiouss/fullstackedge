@@ -105,10 +105,13 @@ export function QuizManager({ courseId }: { courseId: string }) {
   }
 
   const options = form.watch('options');
-  const lessonTitleMap = useMemo(() => lessons.reduce((acc, lesson) => {
-      acc[lesson.id] = lesson.title;
-      return acc;
-  }, {} as Record<string, string>), [lessons]);
+  const lessonTitleMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const lesson of lessons) {
+      map[lesson.id] = lesson.title;
+    }
+    return map;
+  }, [lessons]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

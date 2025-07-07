@@ -28,4 +28,6 @@ export interface Quiz {
 
 export interface UserProgress {
   completedLessons: string[];
+  certificateUrl?: string;
+  completionDate?: any;
 }
