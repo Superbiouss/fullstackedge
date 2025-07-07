@@ -100,6 +100,8 @@ export function CourseForm({ course }: { course?: Course }) {
         const docRef = await addDoc(collection(db, 'courses'), {
           ...courseData,
           createdAt: serverTimestamp(),
+          lessonCount: 0,
+          enrollmentCount: 0,
         });
         toast({ title: 'Success', description: 'Course created successfully.' });
         router.push(`/admin/courses/${docRef.id}`);

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, increment } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Lesson } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -74,6 +74,9 @@ export function LessonManager({ courseId }: { courseId: string }) {
         content: contentUrlOrText,
         createdAt: serverTimestamp(),
       });
+      
+      const courseRef = doc(db, 'courses', courseId);
+      await updateDoc(courseRef, { lessonCount: increment(1) });
 
       toast({ title: 'Success', description: 'Lesson added successfully.' });
       form.reset();
@@ -88,6 +91,10 @@ export function LessonManager({ courseId }: { courseId: string }) {
   const handleDelete = async (lessonId: string) => {
     try {
         await deleteDoc(doc(db, 'courses', courseId, 'lessons', lessonId));
+        
+        const courseRef = doc(db, 'courses', courseId);
+        await updateDoc(courseRef, { lessonCount: increment(-1) });
+        
         toast({ title: 'Success', description: 'Lesson deleted.' });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not delete lesson.' });

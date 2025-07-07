@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db, storage } from '@/lib/firebase';
-import { doc, getDoc, onSnapshot, collection, query, orderBy, setDoc, arrayUnion, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, collection, query, orderBy, setDoc, arrayUnion, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Course, Lesson, Quiz, UserProgress } from '@/types';
 import { CoursePlayer } from '@/components/course-viewer/course-player';
@@ -40,6 +40,10 @@ export default function CoursePage({ params }: { params: { courseId: string } })
         const userProfileRef = doc(db, 'users', user.uid);
         await updateDoc(userProfileRef, {
           purchasedCourses: arrayUnion(courseId)
+        });
+        const courseRef = doc(db, 'courses', courseId);
+        await updateDoc(courseRef, {
+          enrollmentCount: increment(1)
         });
         toast({
           title: "Purchase Successful!",

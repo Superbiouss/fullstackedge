@@ -9,19 +9,21 @@ import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Course } from '@/types';
+import type { Course, UserProgress } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/footer';
+import { Progress } from '@/components/ui/progress';
 
 export default function DashboardPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [progressData, setProgressData] = useState<Record<string, UserProgress>>({});
   const [loading, setLoading] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState<string | null>(null);
 
@@ -33,7 +35,7 @@ export default function DashboardPage() {
     }
     
     const q = query(collection(db, 'courses'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeCourses = onSnapshot(q, (snapshot) => {
       const coursesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
       setCourses(coursesData);
       setLoading(false);
@@ -41,7 +43,20 @@ export default function DashboardPage() {
       console.error("Error fetching courses: ", error);
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    const progressQuery = query(collection(db, 'userProgress', user.uid, 'courses'));
+    const unsubscribeProgress = onSnapshot(progressQuery, (snapshot) => {
+        const progressRecords: Record<string, UserProgress> = {};
+        snapshot.forEach(doc => {
+            progressRecords[doc.id] = doc.data() as UserProgress;
+        });
+        setProgressData(progressRecords);
+    });
+
+    return () => {
+      unsubscribeCourses();
+      unsubscribeProgress();
+    };
   }, [user, authLoading, router]);
 
   const handlePurchase = async (course: Course) => {
@@ -100,48 +115,61 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {courses.map((course) => {
                     const hasAccess = !course.isPaid || !!userProfile?.purchasedCourses?.includes(course.id);
+                    const userProgress = progressData[course.id];
+                    const completedLessons = userProgress?.completedLessons?.length || 0;
+                    const totalLessons = course.lessonCount || 0;
+                    const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
                     return (
                         <Card key={course.id} className="flex flex-col">
-                        <CardHeader className="p-0">
-                            <div className="relative w-full h-40">
-                            <Image
-                                src={course.thumbnailUrl || 'https://placehold.co/600x400.png'}
-                                alt={course.title}
-                                fill
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                className="object-cover rounded-t-lg"
-                                data-ai-hint="online course"
-                            />
-                            </div>
-                            <div className="p-6">
-                                <div className='flex justify-between items-start gap-2'>
-                                    <CardTitle className="font-headline text-xl mb-2">{course.title}</CardTitle>
-                                    <Badge variant={course.isPaid ? 'default' : 'secondary'} className="whitespace-nowrap">
-                                        {course.isPaid ? `$${course.price}` : 'Free'}
-                                    </Badge>
+                          <CardHeader className="p-0">
+                              <div className="relative w-full h-40">
+                                <Image
+                                  src={course.thumbnailUrl || 'https://placehold.co/600x400.png'}
+                                  alt={course.title}
+                                  fill
+                                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                  className="object-cover rounded-t-lg"
+                                  data-ai-hint="online course"
+                                />
+                              </div>
+                              <div className="p-6">
+                                  <div className='flex justify-between items-start gap-2'>
+                                      <CardTitle className="font-headline text-xl mb-2">{course.title}</CardTitle>
+                                      <Badge variant={course.isPaid ? 'default' : 'secondary'} className="whitespace-nowrap">
+                                          {course.isPaid ? `$${course.price}` : 'Free'}
+                                      </Badge>
+                                  </div>
+                                  <CardDescription className="line-clamp-3">{course.description}</CardDescription>
+                              </div>
+                          </CardHeader>
+                          <CardContent className="flex-1">
+                            {hasAccess && totalLessons > 0 && (
+                                <div className="space-y-2">
+                                    <Progress value={progressPercentage} className="h-2 [&>div]:bg-primary" />
+                                    <p className="text-xs text-muted-foreground">{completedLessons} / {totalLessons} lessons completed</p>
                                 </div>
-                                <CardDescription className="line-clamp-3">{course.description}</CardDescription>
-                            </div>
-                        </CardHeader>
-                        <CardFooter className="mt-auto">
-                           {hasAccess ? (
-                                <Button asChild className="w-full font-bold">
-                                    <Link href={`/courses/${course.id}`}>
-                                        Start Learning <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <Button 
-                                    onClick={() => handlePurchase(course)} 
-                                    disabled={isPurchasing === course.id}
-                                    className="w-full font-bold"
-                                    style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }}
-                                >
-                                    {isPurchasing === course.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-                                    Buy for ${course.price}
-                                </Button>
                             )}
-                        </CardFooter>
+                          </CardContent>
+                          <CardFooter>
+                            {hasAccess ? (
+                                  <Button asChild className="w-full font-bold">
+                                      <Link href={`/courses/${course.id}`}>
+                                          {progressPercentage > 0 && progressPercentage < 100 ? 'Continue Learning' : 'Start Learning'} <ArrowRight className="ml-2 h-4 w-4" />
+                                      </Link>
+                                  </Button>
+                              ) : (
+                                  <Button 
+                                      onClick={() => handlePurchase(course)} 
+                                      disabled={isPurchasing === course.id}
+                                      className="w-full font-bold"
+                                      style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }}
+                                  >
+                                      {isPurchasing === course.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                                      Buy for ${course.price}
+                                  </Button>
+                              )}
+                          </CardFooter>
                         </Card>
                     );
                 })}

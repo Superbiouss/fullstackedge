@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { BookCopy, LogOut, Home, Presentation } from 'lucide-react';
+import { BookCopy, LogOut, Home, BarChartHorizontal } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '../logo';
@@ -37,7 +37,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       label: 'Courses',
       icon: BookCopy,
     },
-    // Add more admin links here
+    {
+      href: '/admin/analytics',
+      label: 'Analytics',
+      icon: BarChartHorizontal,
+    },
   ];
 
   return (

@@ -8,6 +8,8 @@ export interface Course {
   price?: number;
   stripePriceId?: string;
   createdAt: any;
+  lessonCount?: number;
+  enrollmentCount?: number;
 }
 
 export interface Lesson {
