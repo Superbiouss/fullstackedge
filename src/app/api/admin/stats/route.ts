@@ -10,7 +10,7 @@ export async function GET() {
     
     try {
         let totalRevenue = 0;
-        const charges = [];
+        const charges: any[] = [];
         let hasMore = true;
         let starting_after: string | undefined = undefined;
 
@@ -28,7 +28,7 @@ export async function GET() {
                 }
             }
             
-            if (response.has_more) {
+            if (response.has_more && response.data.length > 0) {
                 starting_after = response.data[response.data.length - 1].id;
             } else {
                 hasMore = false;
@@ -58,12 +58,11 @@ export async function GET() {
         }
         
         const revenueChartData = Object.keys(dailyRevenue)
+            .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
             .map(date => ({
-                // Format the date for display on the chart's X-axis
                 date: format(new Date(date), 'MMM d'),
                 revenue: dailyRevenue[date],
-            }))
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            }));
 
 
         return NextResponse.json({
