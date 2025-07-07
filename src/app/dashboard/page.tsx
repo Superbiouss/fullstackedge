@@ -15,6 +15,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Footer } from '@/components/footer';
 
 export default function DashboardPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -149,6 +150,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
@@ -183,6 +185,7 @@ function DashboardSkeleton() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   )
 }

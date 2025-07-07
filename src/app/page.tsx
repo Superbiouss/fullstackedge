@@ -2,6 +2,7 @@ import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, CodeXml, Layers, TerminalSquare } from 'lucide-react';
 import Link from 'next/link';
+import { Footer } from '@/components/footer';
 
 export default function Home() {
   return (
@@ -65,11 +66,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="py-6 border-t border-border/50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} FullStack Edge. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
