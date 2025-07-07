@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -26,12 +26,19 @@ const formSchema = z.object({
   price: z.coerce.number().optional(),
   stripePriceId: z.string().optional(),
   thumbnail: z.any().optional(),
-}).refine(data => !data.isPaid || (data.isPaid && data.price && data.price > 0), {
-  message: 'Price must be a positive number for paid courses.',
-  path: ['price'],
-}).refine(data => !data.isPaid || (data.isPaid && data.stripePriceId), {
-    message: 'Stripe Price ID is required for paid courses.',
-    path: ['stripePriceId'],
+}).refine(data => {
+  if (data.isPaid) {
+    const priceProvided = data.price !== undefined && data.price > 0;
+    const stripeIdProvided = !!data.stripePriceId?.trim();
+    // If one is provided, the other must also be. This allows saving a paid course without either.
+    if (priceProvided !== stripeIdProvided) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: "Price and Stripe ID must both be provided to make a course purchasable.",
+  path: ['price'], // Attach the error message to the price field for visibility.
 });
 
 
@@ -67,14 +74,20 @@ export function CourseForm({ course }: { course?: Course }) {
         thumbnailUrl = await getDownloadURL(snapshot.ref);
       }
 
-      const courseData = {
+      const courseData: any = {
         ...values,
-        price: values.isPaid ? values.price : 0,
-        stripePriceId: values.isPaid ? values.stripePriceId : '',
         thumbnailUrl,
       };
-      
       delete courseData.thumbnail;
+
+      if (!values.isPaid) {
+        courseData.price = 0;
+        courseData.stripePriceId = '';
+      } else {
+        courseData.price = values.price ? Number(values.price) : undefined;
+        courseData.stripePriceId = values.stripePriceId || undefined;
+      }
+
 
       if (course) {
         // Update existing course
@@ -173,7 +186,14 @@ export function CourseForm({ course }: { course?: Course }) {
                             <FormControl>
                                 <Switch
                                     checked={field.value}
-                                    onCheckedChange={field.onChange}
+                                    onCheckedChange={(checked) => {
+                                      field.onChange(checked);
+                                      if (!checked) {
+                                        // Clear pricing fields when switching to free
+                                        form.setValue('price', undefined, { shouldValidate: true });
+                                        form.setValue('stripePriceId', '', { shouldValidate: true });
+                                      }
+                                    }}
                                 />
                             </FormControl>
                         </FormItem>
