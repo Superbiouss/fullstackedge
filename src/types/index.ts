@@ -6,6 +6,7 @@ export interface Course {
   thumbnailUrl?: string;
   isPaid: boolean;
   price?: number;
+  stripePriceId?: string;
   createdAt: any;
 }
 
@@ -30,4 +31,10 @@ export interface UserProgress {
   completedLessons: string[];
   certificateUrl?: string;
   completionDate?: any;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string | null;
+  purchasedCourses?: string[];
 }

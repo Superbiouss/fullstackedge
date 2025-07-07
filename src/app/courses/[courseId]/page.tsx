@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, onSnapshot, collection, query, orderBy, setDoc, arrayUnion, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -11,10 +11,14 @@ import { CoursePlayer } from '@/components/course-viewer/course-player';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generateCertificateSVG } from '@/lib/certificate-template';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Lock } from 'lucide-react';
 
 export default function CoursePage({ params }: { params: { courseId: string } }) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -27,6 +31,34 @@ export default function CoursePage({ params }: { params: { courseId: string } })
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 
   const courseId = params.courseId;
+
+  // Handle payment status from Stripe redirect
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    if (paymentStatus === 'success' && user && userProfile && !userProfile.purchasedCourses?.includes(courseId)) {
+      const enrollUser = async () => {
+        const userProfileRef = doc(db, 'users', user.uid);
+        await updateDoc(userProfileRef, {
+          purchasedCourses: arrayUnion(courseId)
+        });
+        toast({
+          title: "Purchase Successful!",
+          description: "You now have full access to this course.",
+          className: "bg-primary text-primary-foreground border-primary"
+        });
+        router.replace(`/courses/${courseId}`, { scroll: false });
+      };
+      enrollUser();
+    }
+    if (paymentStatus === 'cancelled') {
+      toast({
+        variant: 'destructive',
+        title: "Payment Cancelled",
+        description: "Your purchase was not completed."
+      });
+      router.replace(`/courses/${courseId}`, { scroll: false });
+    }
+  }, [searchParams, user, userProfile, courseId, router, toast]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -85,6 +117,7 @@ export default function CoursePage({ params }: { params: { courseId: string } })
       if (docSnap.exists()) {
         setUserProgress(docSnap.data() as UserProgress);
       } else {
+        // Initialize progress if it doesn't exist
         setUserProgress({ completedLessons: [] });
       }
     });
@@ -160,8 +193,23 @@ export default function CoursePage({ params }: { params: { courseId: string } })
     return quizzes.find(quiz => quiz.lessonId === selectedLessonId);
   }, [quizzes, selectedLessonId]);
 
-  if (loading || authLoading || !course || !userProgress) {
+  if (loading || authLoading || !userProgress) {
     return <CoursePageSkeleton />;
+  }
+
+  const hasAccess = !course?.isPaid || !!userProfile?.purchasedCourses?.includes(courseId);
+
+  if (!hasAccess) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-8">
+        <Lock className="w-16 h-16 text-accent mb-4" />
+        <h1 className="text-3xl font-bold font-headline mb-2">Access Denied</h1>
+        <p className="text-muted-foreground mb-6">This is a paid course. Please purchase it to gain access.</p>
+        <Button asChild style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }}>
+          <Link href="/dashboard">Back to Dashboard</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (

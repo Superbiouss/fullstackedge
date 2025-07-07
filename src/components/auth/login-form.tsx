@@ -29,6 +29,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Github, Loader2 } from 'lucide-react';
 import { Logo } from '../logo';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -72,7 +74,18 @@ export function LoginForm() {
   async function handleGithubSignIn() {
     setIsGithubLoading(true);
     try {
-      await signInWithPopup(auth, githubProvider);
+      const result = await signInWithPopup(auth, githubProvider);
+      const user = result.user;
+      const userDocRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(userDocRef);
+
+      if (!docSnap.exists()) {
+          await setDoc(userDocRef, {
+              email: user.email,
+              purchasedCourses: []
+          });
+      }
+
       toast({
         title: 'Success!',
         description: 'You have successfully logged in with GitHub.',

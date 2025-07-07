@@ -13,13 +13,16 @@ import type { Course } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2, Lock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPurchasing, setIsPurchasing] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -39,6 +42,34 @@ export default function DashboardPage() {
     });
     return () => unsubscribe();
   }, [user, authLoading, router]);
+
+  const handlePurchase = async (course: Course) => {
+    if (!user) {
+        router.push(`/login?redirect=/dashboard`);
+        return;
+    }
+    setIsPurchasing(course.id);
+    try {
+        const response = await fetch('/api/stripe/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ courseId: course.id, userId: user.uid })
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error || 'Failed to create checkout session');
+        }
+
+        const { url } = await response.json();
+        if (url) {
+            window.location.href = url;
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not initiate purchase.' });
+        setIsPurchasing(null);
+    }
+  };
 
   if (authLoading || loading) {
     return <DashboardSkeleton />;
@@ -66,38 +97,53 @@ export default function DashboardPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {courses.map((course) => (
-                    <Card key={course.id} className="flex flex-col">
-                    <CardHeader className="p-0">
-                        <div className="relative w-full h-40">
-                        <Image
-                            src={course.thumbnailUrl || 'https://placehold.co/600x400.png'}
-                            alt={course.title}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-cover rounded-t-lg"
-                            data-ai-hint="online course"
-                        />
-                        </div>
-                        <div className="p-6">
-                            <div className='flex justify-between items-start gap-2'>
-                                <CardTitle className="font-headline text-xl mb-2">{course.title}</CardTitle>
-                                <Badge variant={course.isPaid ? 'default' : 'secondary'} className="whitespace-nowrap">
-                                    {course.isPaid ? `$${course.price}` : 'Free'}
-                                </Badge>
+                {courses.map((course) => {
+                    const hasAccess = !course.isPaid || !!userProfile?.purchasedCourses?.includes(course.id);
+                    return (
+                        <Card key={course.id} className="flex flex-col">
+                        <CardHeader className="p-0">
+                            <div className="relative w-full h-40">
+                            <Image
+                                src={course.thumbnailUrl || 'https://placehold.co/600x400.png'}
+                                alt={course.title}
+                                fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                className="object-cover rounded-t-lg"
+                                data-ai-hint="online course"
+                            />
                             </div>
-                            <CardDescription className="line-clamp-3">{course.description}</CardDescription>
-                        </div>
-                    </CardHeader>
-                    <CardFooter className="mt-auto">
-                        <Button asChild className="w-full font-bold">
-                            <Link href={`/courses/${course.id}`}>
-                                Start Learning <ArrowRight className="ml-2 h-4 w-4" />
-                            </Link>
-                        </Button>
-                    </CardFooter>
-                    </Card>
-                ))}
+                            <div className="p-6">
+                                <div className='flex justify-between items-start gap-2'>
+                                    <CardTitle className="font-headline text-xl mb-2">{course.title}</CardTitle>
+                                    <Badge variant={course.isPaid ? 'default' : 'secondary'} className="whitespace-nowrap">
+                                        {course.isPaid ? `$${course.price}` : 'Free'}
+                                    </Badge>
+                                </div>
+                                <CardDescription className="line-clamp-3">{course.description}</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardFooter className="mt-auto">
+                           {hasAccess ? (
+                                <Button asChild className="w-full font-bold">
+                                    <Link href={`/courses/${course.id}`}>
+                                        Start Learning <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            ) : (
+                                <Button 
+                                    onClick={() => handlePurchase(course)} 
+                                    disabled={isPurchasing === course.id}
+                                    className="w-full font-bold"
+                                    style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }}
+                                >
+                                    {isPurchasing === course.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                                    Buy for ${course.price}
+                                </Button>
+                            )}
+                        </CardFooter>
+                        </Card>
+                    );
+                })}
                 </div>
             )}
           </div>
@@ -117,7 +163,6 @@ function DashboardSkeleton() {
           <Skeleton className="h-6 w-3/4 mt-3" />
           
           <div className="mt-8">
-            <Skeleton className="h-8 w-1/4 mb-4" />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(3)].map((_, i) => (
                 <Card key={i}>

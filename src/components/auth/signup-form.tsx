@@ -29,6 +29,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Github, Loader2 } from 'lucide-react';
 import { Logo } from '../logo';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -52,7 +54,12 @@ export function SignupForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        email: userCredential.user.email,
+        purchasedCourses: [],
+      });
+      
       toast({
         title: 'Account created!',
         description: "You've been successfully signed up.",
@@ -72,7 +79,18 @@ export function SignupForm() {
   async function handleGithubSignIn() {
     setIsGithubLoading(true);
     try {
-      await signInWithPopup(auth, githubProvider);
+      const result = await signInWithPopup(auth, githubProvider);
+      const user = result.user;
+      const userDocRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(userDocRef);
+
+      if (!docSnap.exists()) {
+          await setDoc(userDocRef, {
+              email: user.email,
+              purchasedCourses: []
+          });
+      }
+
       toast({
         title: 'Success!',
         description: 'You have successfully signed up with GitHub.',

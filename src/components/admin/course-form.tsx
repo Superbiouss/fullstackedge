@@ -24,10 +24,14 @@ const formSchema = z.object({
   category: z.string().min(2, { message: 'Category is required.' }),
   isPaid: z.boolean().default(false),
   price: z.coerce.number().optional(),
+  stripePriceId: z.string().optional(),
   thumbnail: z.any().optional(),
 }).refine(data => !data.isPaid || (data.isPaid && data.price && data.price > 0), {
   message: 'Price must be a positive number for paid courses.',
   path: ['price'],
+}).refine(data => !data.isPaid || (data.isPaid && data.stripePriceId), {
+    message: 'Stripe Price ID is required for paid courses.',
+    path: ['stripePriceId'],
 });
 
 
@@ -44,6 +48,7 @@ export function CourseForm({ course }: { course?: Course }) {
       category: course?.category || '',
       isPaid: course?.isPaid || false,
       price: course?.price || undefined,
+      stripePriceId: course?.stripePriceId || '',
       thumbnail: undefined,
     },
   });
@@ -65,6 +70,7 @@ export function CourseForm({ course }: { course?: Course }) {
       const courseData = {
         ...values,
         price: values.isPaid ? values.price : 0,
+        stripePriceId: values.isPaid ? values.stripePriceId : '',
         thumbnailUrl,
       };
       
@@ -176,22 +182,36 @@ export function CourseForm({ course }: { course?: Course }) {
             </div>
                 
             {isPaid && (
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price (USD)</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                        <Input type="number" step="0.01" placeholder="29.99" className="pl-7" {...field} value={field.value ?? ''} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <>
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Price (USD)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                          <Input type="number" step="0.01" placeholder="29.99" className="pl-7" {...field} value={field.value ?? ''} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="stripePriceId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Stripe Price ID</FormLabel>
+                        <FormControl><Input placeholder="price_123abc..." {...field} /></FormControl>
+                        <FormDescription>Required for paid courses. Get this from your Stripe dashboard.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </>
             )}
 
             <Button type="submit" disabled={isLoading}>
