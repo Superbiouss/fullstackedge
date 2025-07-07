@@ -40,3 +40,24 @@ export interface UserProfile {
   email: string | null;
   purchasedCourses?: string[];
 }
+
+export interface Thread {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorPhotoURL?: string;
+  createdAt: any;
+  replyCount?: number;
+  lastReplyAt?: any;
+}
+
+export interface Reply {
+  id: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorPhotoURL?: string;
+  createdAt: any;
+}

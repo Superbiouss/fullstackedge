@@ -30,6 +30,9 @@ export function Header() {
               <Button asChild variant="ghost">
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
+              <Button asChild variant="ghost">
+                <Link href="/community">Community</Link>
+              </Button>
               {isAdmin && (
                 <Button asChild variant="ghost" style={{ color: 'hsl(var(--primary))' }} className="hover:text-primary">
                   <Link href="/admin">
