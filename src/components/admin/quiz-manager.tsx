@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, getDocs, where, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { Lesson, Quiz } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -105,13 +105,6 @@ export function QuizManager({ courseId }: { courseId: string }) {
   };
 
   const options = form.watch('options');
-  const lessonTitleMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const lesson of lessons) {
-      map[lesson.id] = lesson.title;
-    }
-    return map;
-  }, [lessons]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -180,46 +173,49 @@ export function QuizManager({ courseId }: { courseId: string }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {quizzes.map((quiz) => (
-                <div key={quiz.id} className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                  <div className="flex justify-between items-start">
-                    <div>
-                        <p className="font-semibold">{quiz.question}</p>
-                        <p className="text-sm text-muted-foreground mt-1">For Lesson: {lessonTitleMap[quiz.lessonId] || 'Unknown'}</p>
-                    </div>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>This will permanently delete the quiz.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(quiz.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                  </div>
-                  <div className="mt-3 space-y-2 text-sm">
-                    {quiz.options.map((option, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                            {option === quiz.correctAnswer 
-                                ? <CheckCircle className="h-4 w-4 text-green-500" />
-                                : <XCircle className="h-4 w-4 text-muted-foreground" />
-                            }
-                            <span>{option}</span>
+              {quizzes.map((quiz) => {
+                const lessonTitle = lessons.find(l => l.id === quiz.lessonId)?.title || 'Unknown';
+                return (
+                    <div key={quiz.id} className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="font-semibold">{quiz.question}</p>
+                            <p className="text-sm text-muted-foreground mt-1">For Lesson: {lessonTitle}</p>
                         </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>This will permanently delete the quiz.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(quiz.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                    <div className="mt-3 space-y-2 text-sm">
+                        {quiz.options.map((option, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                                {option === quiz.correctAnswer 
+                                    ? <CheckCircle className="h-4 w-4 text-green-500" />
+                                    : <XCircle className="h-4 w-4 text-muted-foreground" />
+                                }
+                                <span>{option}</span>
+                            </div>
+                        ))}
+                    </div>
+                    </div>
+                );
+              })}
               {quizzes.length === 0 && <p className="text-muted-foreground text-center py-8">No quizzes yet.</p>}
             </div>
           </CardContent>
