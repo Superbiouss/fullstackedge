@@ -33,9 +33,8 @@ export function LessonSidebar({
               const isCompleted = userProgress.completedLessons.includes(lesson.id);
               const isSelected = lesson.id === selectedLessonId;
               
-              // For a future "drip content" feature, you could lock lessons:
-              // const isLocked = index > 0 && !userProgress.completedLessons.includes(lessons[index - 1].id);
-              const isLocked = false; 
+              // A lesson is locked if it's not the first one and the previous one hasn't been completed.
+              const isLocked = index > 0 && !userProgress.completedLessons.includes(lessons[index - 1].id);
 
               return (
                 <li key={lesson.id}>
