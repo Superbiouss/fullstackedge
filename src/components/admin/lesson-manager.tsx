@@ -22,13 +22,22 @@ const formSchema = z.object({
   title: z.string().min(3, 'Title is required'),
   type: z.enum(['text', 'video']),
   content: z.any(),
-}).refine(data => {
-    if (data.type === 'video') return data.content?.length > 0;
-    if (data.type === 'text') return typeof data.content === 'string' && data.content.length > 10;
-    return false;
+}).refine((data) => {
+    if (data.type === 'text') {
+        return typeof data.content === 'string' && data.content.length >= 10;
+    }
+    return true;
 }, {
-    message: 'Content is required.',
-    path: ['content'],
+    message: 'Text content must be at least 10 characters.',
+    path: ['content']
+}).refine((data) => {
+    if (data.type === 'video') {
+        return data.content?.length > 0;
+    }
+    return true;
+}, {
+    message: 'A video file is required.',
+    path: ['content']
 });
 
 
@@ -80,7 +89,7 @@ export function LessonManager({ courseId }: { courseId: string }) {
 
       toast({ title: 'Success', description: 'Lesson added successfully.' });
       form.reset();
-      form.setValue('content', '');
+      form.setValue('content', '', { shouldValidate: true });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
@@ -117,7 +126,7 @@ export function LessonManager({ courseId }: { courseId: string }) {
                 <FormField control={form.control} name="type" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); form.setValue('content', ''); }} defaultValue={field.value}>
+                    <Select onValueChange={(value) => { field.onChange(value); form.setValue('content', '', { shouldValidate: true }); }} defaultValue={field.value}>
                       <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="text">Text (Markdown)</SelectItem>
@@ -126,14 +135,26 @@ export function LessonManager({ courseId }: { courseId: string }) {
                     </Select>
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="content" render={({ field: { onChange, ...rest } }) => (
+                <FormField control={form.control} name="content" render={({ field }) => (
                   <FormItem>
                     <FormLabel>{lessonType === 'text' ? 'Text Content' : 'Video File'}</FormLabel>
                     <FormControl>
                       {lessonType === 'text' ? (
-                        <Textarea placeholder="Write your lesson content here..." rows={8} onChange={onChange} {...rest} />
+                        <Textarea 
+                            placeholder="Write your lesson content here..." 
+                            rows={8} 
+                            {...field}
+                            value={typeof field.value === 'string' ? field.value : ''}
+                        />
                       ) : (
-                        <Input type="file" accept="video/*" onChange={(e) => onChange(e.target.files)} {...rest} />
+                        <Input 
+                            type="file" 
+                            accept="video/*"
+                            ref={field.ref}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            onChange={(e) => field.onChange(e.target.files)} 
+                        />
                       )}
                     </FormControl>
                      <FormMessage />
