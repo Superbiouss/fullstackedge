@@ -64,7 +64,7 @@ export function QuizManager({ courseId }: { courseId: string }) {
     };
   }, [courseId]);
 
-  async function onSubmit(values: z.infer<typeof quizFormSchema>) {
+  const onSubmit = async (values: z.infer<typeof quizFormSchema>) => {
     setIsLoading(true);
     try {
       const flatOptions = values.options.map(opt => opt.value);
@@ -93,7 +93,7 @@ export function QuizManager({ courseId }: { courseId: string }) {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const handleDelete = async (quizId: string) => {
     try {
@@ -102,7 +102,7 @@ export function QuizManager({ courseId }: { courseId: string }) {
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not delete quiz.' });
     }
-  }
+  };
 
   const options = form.watch('options');
   const lessonTitleMap = useMemo(() => {
